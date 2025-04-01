@@ -7,32 +7,67 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class SimulationManager {
+public class SimulationManager implements Runnable{
+    //data read from UI
+    public int timeLimit = 100; //maximum processing time - read from UI
+    public int maxProcessingTime = 10;
+    public int minProcessingTime = 2;
+    public int numberOfServers = 3;
+    public int numberOfClients = 100;
+    public SelectionPolicy selectionPolicy = SelectionPolicy.SHORTEST_QUEUE;
+
+    //entitiy responsible with queue management and client distribution
     private Scheduler scheduler;
+    //frame for displaying simulation
     private SimulationFrame frame;
-    private List<Task> tasks;
-    //private SelectionPolicy selectionPolicy;
+    //pool of tasks (client shopping in the store)
+    private List<Task> generatedTasks; // sau tasks li se mai zice
 
     public SimulationManager() {
-        scheduler = new Scheduler();
-        tasks = new ArrayList<>();
+        // Intializare
+        // -> crate and start numberOfServers
+        scheduler = new Scheduler(numberOfServers, 1);
+        generatedTasks = new ArrayList<>();
+        //initialize selection strategy -> e in scheduler in constructor
+        generateRandomTasks();
         frame = new SimulationFrame();
-        //selectionPolicy = new SelectionPolicy();
     }
 
-    public void generateRandomTasks(int numberOfTasks) {
+    public void generateRandomTasks() {
         Random random = new Random();
-        tasks.clear();
+        generatedTasks.clear();
+        int numberOfTasks = random.nextInt(1000) + 1;
         for (int i = 1;  i <= numberOfTasks; i++) {
             int arrivalTime = random.nextInt(100) + 1;
-            int serviceTime = random.nextInt(10) + 1;
+            int serviceTime = random.nextInt(maxProcessingTime - minProcessingTime) + minProcessingTime;
             Task task = new Task(i, arrivalTime, serviceTime);
-            tasks.add(task);
+            generatedTasks.add(task);
         }
     }
 
     public List<Task>  getTasks() {
-        return tasks;
+        return generatedTasks;
     }
 
+    @Override
+    public void run() {
+        int currentTime = 0;
+        while (currentTime < timeLimit) {
+            //iterate generated Tasks list and pick task that have the
+            //arivialTime equal with the current Time
+            // - send task to queueu by calling the dispatchTask Method
+            //from Scheduler
+            // - delete client from list
+            //update UI frame
+            currentTime++;
+            //wait an interval of 1 second
+        }
+    }
+
+    //aici ajunge main-ul la final, sa stergi clasa cu main
+    public static void main(String[] args){
+        SimulationManager gen= new SimulationManager();
+        Thread t = new Thread(gen);
+        t.start();
+    }
 }

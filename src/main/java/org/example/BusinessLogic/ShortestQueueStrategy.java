@@ -5,7 +5,7 @@ import org.example.Model.Task;
 
 import java.util.List;
 
-public class ShortestQueueStrategy extends Strategy{
+public class ShortestQueueStrategy  implements Strategy{
 
 
     @Override

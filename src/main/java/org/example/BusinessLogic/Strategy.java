@@ -5,8 +5,6 @@ import org.example.Model.Task;
 
 import java.util.List;
 
-public class Strategy {
-    void addTask(List<Server> servers, Task task) {
-
-    }
+public interface Strategy {
+    default void addTask(List<Server> servers, Task task){}
 }
