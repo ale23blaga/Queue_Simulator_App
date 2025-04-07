@@ -24,6 +24,7 @@ public class Scheduler {
             servers.add(server);
             Thread serversThread = new Thread(server); //create new thread with the object
         }
+        strategy = new ShortestQueueStrategy();
     }
 
     public void changeStrategy(SelectionPolicy policy) {
@@ -32,6 +33,7 @@ public class Scheduler {
         if (policy == SelectionPolicy.SHORTEST_QUEUE) {
             strategy = new  ShortestQueueStrategy();
         }
+        else
         if (policy == SelectionPolicy.SHORTEST_TIME){
             strategy = new  TimeStrategy();
         }
@@ -40,7 +42,7 @@ public class Scheduler {
     public void dispatchTask(Task task){
         //call the strategy addTask method
         //this method sends task to the queue
-
+        strategy.addTask(servers, task);
 
     }
 

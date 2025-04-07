@@ -21,6 +21,10 @@ public class Server implements Runnable{
         tasks.add(task);
     }
 
+    public void addTask(Task task){
+        tasks.add(task);
+    }
+
     public void run() {
         while(true){
             //take new task from queue
@@ -41,5 +45,13 @@ public class Server implements Runnable{
 
     public Task[] getTasks(){
         return tasks.toArray(new Task[tasks.size()]);
+    }
+
+    public int getQueueSize() {
+        return tasks.size();
+    }
+
+    public int getWaitingPeriod() {
+        return waitingPeriod.get();
     }
 }

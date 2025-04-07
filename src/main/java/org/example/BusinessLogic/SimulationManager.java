@@ -1,6 +1,7 @@
 package org.example.BusinessLogic;
 
 import org.example.GUI.SimulationFrame;
+import org.example.Model.Server;
 import org.example.Model.Task;
 
 import java.util.ArrayList;
@@ -51,23 +52,43 @@ public class SimulationManager implements Runnable{
 
     @Override
     public void run() {
+        //iterate generated Tasks list and pick task that have the
+        //arivialTime equal with the current Time
+        // - send task to queueu by calling the dispatchTask Method
+        //from Scheduler
+        // - delete client from list
+        //update UI frame
         int currentTime = 0;
         while (currentTime < timeLimit) {
-            //iterate generated Tasks list and pick task that have the
-            //arivialTime equal with the current Time
-            // - send task to queueu by calling the dispatchTask Method
-            //from Scheduler
-            // - delete client from list
-            //update UI frame
+            List<Task> toRemove = new ArrayList<>();
+            for (Task t : generatedTasks) {
+                if (t.getArrivalTime() == currentTime) {
+                    scheduler.dispatchTask(t);
+                    toRemove.add(t);
+                }
+            }
+            generatedTasks.removeAll(toRemove);
+
+            // update UI / logs here
+            System.out.println("Time: " + currentTime);
+            for (Server server : scheduler.getServers()) {
+                System.out.println("Server: " + server.getTasks().length + " tasks");
+            }
+
             currentTime++;
-            //wait an interval of 1 second
+            try {
+                Thread.sleep(1000); // simulate 1 second
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
+        //wait an interval of 1 second
     }
 
     //aici ajunge main-ul la final, sa stergi clasa cu main
     public static void main(String[] args){
         SimulationManager gen= new SimulationManager();
         Thread t = new Thread(gen);
-        t.start();
+        //t.start();
     }
 }
