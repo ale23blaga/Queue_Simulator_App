@@ -1,18 +1,25 @@
 package org.example.GUI;
 
+import org.example.BusinessLogic.SelectionPolicy;
+import org.example.BusinessLogic.SimulationManager;
+import org.example.Model.Server;
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class SimulationFrame extends JFrame {
-    private JTextField minProcessingField;
-    private JTextField maxProcessingField;
+
     private JTextField numberOfClientsField;
     private JTextField numberOfServersField;
-    private JTextField timeLimitField;
-    private JComboBox<String> policyComboBox;
+    private JTextField maxSimulationTimeField;
+    private JTextField minArrivalTimeField, maxArrivalTimeField;
+    private JTextField minServiceTimeField, maxServiceTimeField;
+    private JComboBox<String> strategybox;
     private JButton startButton;
 
     private JTextArea logArea;
@@ -20,11 +27,10 @@ public class SimulationFrame extends JFrame {
     private JLabel averageWaitLabel;
     private JLabel peakHourLabel;
 
-    private PrintWriter logWriter;
 
     public SimulationFrame() {
         this.setTitle("Queue Simulation");
-        this.setSize(700, 600);
+        this.setSize(1000, 800);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setLayout(new BorderLayout());
 
@@ -32,28 +38,36 @@ public class SimulationFrame extends JFrame {
         JPanel inputPanel = new JPanel(new GridLayout(3, 4, 10, 10));
         inputPanel.setBorder(BorderFactory.createTitledBorder("Simulation Settings"));
 
-        minProcessingField = new JTextField("2");
-        maxProcessingField = new JTextField("5");
         numberOfClientsField = new JTextField("100");
-        numberOfServersField = new JTextField("3");
-        timeLimitField = new JTextField("100");
+        numberOfServersField = new JTextField("4");
+        maxSimulationTimeField = new JTextField("100");
+        minArrivalTimeField = new JTextField("1");
+        maxArrivalTimeField = new JTextField("80");
+        minServiceTimeField = new JTextField("2");
+        maxServiceTimeField = new JTextField("10");
 
-        policyComboBox = new JComboBox<>(new String[]{"SHORTEST_QUEUE", "SHORTEST_TIME"});
+        strategybox = new JComboBox<>(new String[]{"SHORTEST_QUEUE", "SHORTEST_TIME"});
         startButton = new JButton("Start Simulation");
 
-        inputPanel.add(new JLabel("Min Processing Time:"));
-        inputPanel.add(minProcessingField);
-        inputPanel.add(new JLabel("Max Processing Time:"));
-        inputPanel.add(maxProcessingField);
-        inputPanel.add(new JLabel("Number of Clients:"));
+        inputPanel.add(new JLabel("Number of Clients"));
         inputPanel.add(numberOfClientsField);
-        inputPanel.add(new JLabel("Number of Servers:"));
+        inputPanel.add(new JLabel("Number of Servers"));
         inputPanel.add(numberOfServersField);
-        inputPanel.add(new JLabel("Time Limit:"));
-        inputPanel.add(timeLimitField);
-        inputPanel.add(new JLabel("Selection Policy:"));
-        inputPanel.add(policyComboBox);
+        inputPanel.add(new JLabel("Max Simulation Time"));
+        inputPanel.add(maxSimulationTimeField);
+        inputPanel.add(new JLabel("Min Arrival Time"));
+        inputPanel.add(minArrivalTimeField);
+        inputPanel.add(new JLabel("Max Arrival Time"));
+        inputPanel.add(maxArrivalTimeField);
+        inputPanel.add(new JLabel("Min Service Time"));
+        inputPanel.add(minServiceTimeField);
+        inputPanel.add(new JLabel("Max Service Time"));
+        inputPanel.add(maxServiceTimeField);
+        inputPanel.add(new JLabel("Strategy"));
+        inputPanel.add(strategybox);
+        inputPanel.add(startButton);
 
+        startButton.addActionListener(e -> startSimulation());
         this.add(inputPanel, BorderLayout.NORTH);
 
         // Center log area
@@ -72,53 +86,36 @@ public class SimulationFrame extends JFrame {
         statsPanel.setBorder(BorderFactory.createTitledBorder("Statistics"));
         this.add(statsPanel, BorderLayout.SOUTH);
 
+
         this.setVisible(true);
+    }
 
-        // Initialize log file
-        try {
-            logWriter = new PrintWriter(new FileWriter("simulation_log.txt", false));
-        } catch (IOException e) {
-            e.printStackTrace();
+    public void startSimulation() {
+        int numberOfClients = Integer.parseInt(numberOfClientsField.getText());
+        int numberOfServers = Integer.parseInt(numberOfServersField.getText());
+        int maxSimulationTime = Integer.parseInt(maxSimulationTimeField.getText());
+        int minArrivalTime = Integer.parseInt(minArrivalTimeField.getText());
+        int maxArrivalTime = Integer.parseInt(maxArrivalTimeField.getText());
+        int minServiceTime = Integer.parseInt(minServiceTimeField.getText());
+        int maxServiceTime = Integer.parseInt(maxServiceTimeField.getText());
+
+        SelectionPolicy strategy = SelectionPolicy.valueOf(strategybox.getSelectedItem().toString());
+
+        SimulationManager sim =  new SimulationManager(numberOfClients, numberOfServers, maxSimulationTime,
+                minArrivalTime, maxArrivalTime, minServiceTime, maxServiceTime, strategy, this);
+
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(numberOfServers);
+        for (Server server : sim.getScheduler().getServers()){
+            executor.execute(server);
         }
-    }
-
-    // Getters for input values
-    public int getMinProcessingTime() {
-        return Integer.parseInt(minProcessingField.getText());
-    }
-
-    public int getMaxProcessingTime() {
-        return Integer.parseInt(maxProcessingField.getText());
-    }
-
-    public int getNumberOfClients() {
-        return Integer.parseInt(numberOfClientsField.getText());
-    }
-
-    public int getNumberOfServers() {
-        return Integer.parseInt(numberOfServersField.getText());
-    }
-
-    public int getTimeLimit() {
-        return Integer.parseInt(timeLimitField.getText());
-    }
-
-    public String getSelectedPolicy() {
-        return (String) policyComboBox.getSelectedItem();
-    }
-
-    public JButton getStartButton() {
-        return startButton;
+        Thread simulationThread = new Thread(sim);
+        simulationThread.start();
     }
 
     // Logging methods
     public void log(String text) {
         logArea.append(text + "\n");
         logArea.setCaretPosition(logArea.getDocument().getLength());
-        if (logWriter != null) {
-            logWriter.println(text);
-            logWriter.flush();
-        }
     }
 
     public void setAverageWaitingTime(double value) {
@@ -129,9 +126,13 @@ public class SimulationFrame extends JFrame {
         peakHourLabel.setText("Peak Hour: " + time);
     }
 
-    public void closeLogFile() {
-        if (logWriter != null) {
-            logWriter.close();
-        }
+
+
+    public void showStats(double averageWaitingTime, int peakHour, double averageServiceTime){
+        setAverageWaitingTime(averageWaitingTime);
+        setPeakHour(peakHour);
+        log("Average Waiting Time: " + String.format("%.2f", averageWaitingTime));
+        log("Peak Hour: " + peakHour);
+        log("Peak Hour: " + peakHour);
     }
 }

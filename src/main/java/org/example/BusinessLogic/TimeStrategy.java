@@ -10,9 +10,9 @@ public class TimeStrategy implements Strategy {
     @Override
     public void addTask(List<Server> servers, Task task) {
         Server minTimeServer = servers.get(0);
-        for (Server s : servers) {
-            if (s.getWaitingPeriod() < minTimeServer.getWaitingPeriod()) {
-                minTimeServer = s;
+        for (Server server : servers) {
+            if (server.getWaitingPeriod() < minTimeServer.getWaitingPeriod()) {
+                minTimeServer = server;
             }
         }
         minTimeServer.addTask(task);
