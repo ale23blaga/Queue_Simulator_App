@@ -56,9 +56,14 @@ public class SimulationManager implements Runnable {
     private void generateRandomTasks() {
         Random rand = new Random();
         generatedTasks.clear();
+        int minA = Math.min(minArrivalTime, maxArrivalTime);
+        int maxA = Math.max(minArrivalTime, maxArrivalTime);
+        int minS = Math.min(minServiceTime, maxServiceTime);
+        int maxS = Math.max(minServiceTime, maxServiceTime);
+
         for (int i = 1; i <= numberOfClients; i++) {
-            int arrivalTime = rand.nextInt(maxArrivalTime - minArrivalTime + 1) + minArrivalTime;
-            int serviceTime = rand.nextInt(maxServiceTime - minServiceTime + 1) + minServiceTime;
+            int arrivalTime = rand.nextInt(maxA - minA + 1) + minA;
+            int serviceTime = rand.nextInt(maxS - minS + 1) + minS;
             generatedTasks.add(new Task(i, arrivalTime, serviceTime));
         }
         generatedTasks.sort(Comparator.comparingInt(Task::getArrivalTime));

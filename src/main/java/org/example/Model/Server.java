@@ -70,12 +70,12 @@ public class Server implements Runnable {
 
                     if (currentTask != null) {
                         currentTask.decreaseRemainingServiceTime();
-                        System.out.println("Task " + currentTask.getId() +
-                                " decremented to " + currentTask.getRemainingServiceTime());
+                        System.out.println("Task " + currentTask.getId() + " decremented to " + currentTask.getRemainingServiceTime());
+                        waitingPeriod.decrementAndGet(); // -1 pe tick
 
                         if (currentTask.getRemainingServiceTime() <= 0) {
                             currentTask.setFinishTime(SimulationClock.getCurrentTime());
-                            waitingPeriod.addAndGet(-currentTask.getServiceTime());
+
                             currentTask = null;
                         }
                     }
