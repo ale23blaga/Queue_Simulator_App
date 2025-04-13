@@ -15,6 +15,8 @@ public class TimeStrategy implements Strategy {
                 minTimeServer = server;
             }
         }
+        System.out.println("Assigned Task " + task.getId() + " to Server " + minTimeServer.getId() + " [Shortest Time]");
         minTimeServer.addTask(task);
     }
+
 }

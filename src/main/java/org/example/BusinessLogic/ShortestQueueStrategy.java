@@ -10,12 +10,13 @@ public class ShortestQueueStrategy  implements Strategy{
 
     @Override
     public void addTask(List<Server> servers, Task task) {
-        Server minQueue = servers.get(0);
+        Server minQueueServer = servers.get(0);
         for (Server server : servers) {
-            if (server.getQueueSize() < minQueue.getQueueSize()) {
-                minQueue = server;
+            if (server.getQueueSize() < minQueueServer.getQueueSize()) {
+                minQueueServer = server;
             }
         }
-        minQueue.addTask(task);
+        System.out.println("Assigned Task " + task.getId() + " to Server " + minQueueServer.getId() + " [Shortest Queue]");
+        minQueueServer.addTask(task);
     }
 }

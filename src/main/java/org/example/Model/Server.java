@@ -6,88 +6,87 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+public class Server implements Runnable {
+    private final BlockingQueue<Task> tasks = new LinkedBlockingQueue<>();
+    private final AtomicInteger waitingPeriod = new AtomicInteger(0);
+    private final int id;
+    private Task currentTask = null;
+    private boolean running = true;
+    private int currentTick = 0;
+    private List<Task> allTasks = new ArrayList<>();
 
-
-public class Server implements Runnable{
-    private BlockingQueue<Task> tasks;
-    private AtomicInteger waitingPeriod; // Cat de mult dureaza coada in acel moment
-    private List<Task> handledTasks = new ArrayList<>();
-    private Task currentTask = null; // The task that is currently processed
-    private volatile boolean running = true; // ca sa le sincronizam cu simulation manager
-
-    public Server() {
-        //intializare queue and waiting Period
-        this.tasks = new LinkedBlockingQueue<>();
-        this.waitingPeriod = new AtomicInteger(0);
+    public Server(int id) {
+        this.id = id;
     }
 
-    public void addTask(int id, int arrivalTime, int serviceTime){
-        Task task = new Task(id, arrivalTime, serviceTime);
+    public void addTask(Task task) {
         tasks.add(task);
+        allTasks.add(task); // for average wait and service time calculations
         waitingPeriod.addAndGet(task.getServiceTime());
-    }
-
-    public void addTask(Task task){
-        tasks.add(task);
-        //The total waiting period is greater
-        waitingPeriod.addAndGet(task.getServiceTime());
-    }
-
-    public void stop(){
-        running = false;
-        Thread.currentThread().interrupt(); // Forced stop if sleeping
-    }
-
-    public void start(){
-        running = true;
-    }
-
-    public boolean isRunning() {
-        return running;
-    }
-
-    public void run() {
-        while(true){
-            try {
-                //Take task from queue
-                //Daca folosesc pool returneaza null cand e gol, asa asteapta pana apare ceva
-                Task task = tasks.take();
-                handledTasks.add(task);
-                currentTask = task;
-                int currentTime = SimulationClock.getCurrentTime();
-
-                task.setStartServiceTime(currentTime);
-                task.setFinishTime(currentTime + task.getServiceTime());
-
-                for( int i = 0; i < task.getServiceTime(); i++ ){
-                    Thread.sleep(1000);
-                    task.decreaseRemainingServiceTime();
-                }
-                currentTask = null;
-                //The task is finished, the total waiting time for the queue should be reduced
-                waitingPeriod.addAndGet(-task.getServiceTime());
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                return;
-
-            }
-        }
-    }
-
-
-    public Task[] getTasks(){
-        return tasks.toArray(new Task[tasks.size()]);
     }
 
     public int getQueueSize() {
-        return tasks.size();
+        int size =  tasks.size();
+        if (currentTask != null) {
+            size += 1;
+        }
+        return size;
+    }
+    public List<Task> getAllTasks(){
+        return allTasks;
     }
 
-    public int getWaitingPeriod() {
-        return waitingPeriod.get();
+    public Task[] getTasks() {
+        return tasks.toArray(new Task[0]);
     }
 
     public Task getCurrentTask() {
         return currentTask;
+    }
+
+    public int getId(){
+        return id;
+    }
+
+    public int getWaitingPeriod(){
+        return waitingPeriod.get();
+    }
+
+    public void stop() {
+        running = false;
+    }
+
+    @Override
+    public void run() {
+        while (running) {
+            SimulationClock.waitForTick(currentTick);
+
+            try {
+                synchronized (this) {
+                    if (currentTask == null && !tasks.isEmpty()) {
+                        currentTask = tasks.take();
+                        currentTask.setStartServiceTime(SimulationClock.getCurrentTime());
+                    }
+
+                    if (currentTask != null) {
+                        currentTask.decreaseRemainingServiceTime();
+                        System.out.println("Task " + currentTask.getId() +
+                                " decremented to " + currentTask.getRemainingServiceTime());
+
+                        if (currentTask.getRemainingServiceTime() <= 0) {
+                            currentTask.setFinishTime(SimulationClock.getCurrentTime());
+                            waitingPeriod.addAndGet(-currentTask.getServiceTime());
+                            currentTask = null;
+                        }
+                    }
+                }
+
+                currentTick++;
+
+            } catch (Exception e) {
+                System.err.println("Server " + id + " error: " + e.getMessage());
+                break;
+            }
+        }
     }
 }

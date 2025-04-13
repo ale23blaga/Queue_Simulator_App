@@ -5,196 +5,200 @@ import org.example.Model.Server;
 import org.example.Model.SimulationClock;
 import org.example.Model.Task;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 
 import static java.lang.Math.max;
 
-public class SimulationManager implements Runnable{
-    //data read from UI
-    public int timeLimit; //maximum processing time - read from UI
-    public int maxServiceTime;
-    public int minServiceTime;
-    public int numberOfServers;
-    public int numberOfClients;
-    public int minArrivalTime;
-    public int maxArrivalTime;
-    public SelectionPolicy selectionPolicy = SelectionPolicy.SHORTEST_QUEUE;
+public class SimulationManager implements Runnable {
+    //private final CyclicBarrier barrier;
 
-    //entitiy responsible with queue management and client distribution
-    private Scheduler scheduler;
-    //frame for displaying simulation
-    private SimulationFrame frame;
-    //pool of tasks (client shopping in the store)
-    private List<Task> generatedTasks; // sau tasks li se mai zice
+    // UI input
+    private final int timeLimit;
+    private final int numberOfClients;
+    private final int numberOfServers;
+    private final int maxServiceTime;
+    private final int minServiceTime;
+    private final int maxArrivalTime;
+    private final int minArrivalTime;
+    private final SelectionPolicy selectionPolicy;
 
-    //Stats
+    // Core components
+    private final SimulationFrame frame;
+    private final Scheduler scheduler;
+    private final List<Task> generatedTasks = new ArrayList<>();
+
+    // Stats
     private int peakHour = -1;
     private double averageWaitingTime = 0.0;
-    public double averageServiceTime = 0.0;
-    private int maxConcomitentClients = 0;
+    private double averageServiceTime = 0.0;
+    private int maxConcurrentClients = 0;
 
-
-    public SimulationManager(int numberOfClients, int numberOfServers, int maxSimulationTime, int minArrivalTime,
-                         int  maxArrivalTime, int  minServiceTime, int maxServiceTime, SelectionPolicy strategy, SimulationFrame frame  )
+    public SimulationManager(int numberOfClients, int numberOfServers, int maxSimulationTime, int minArrivalTime, int maxArrivalTime, int minServiceTime, int maxServiceTime, SelectionPolicy strategy, SimulationFrame frame)
     {
         this.numberOfClients = numberOfClients;
         this.numberOfServers = numberOfServers;
-        this.maxServiceTime = maxServiceTime;
-        this.minServiceTime = max(minServiceTime, 1); //asuring at least one sec of service
-        this.maxArrivalTime = maxArrivalTime;
-        this.minArrivalTime = max(minArrivalTime, 1);
         this.timeLimit = maxSimulationTime;
-        this.frame = frame;
+        this.minArrivalTime = max(minArrivalTime, 1);
+        this.maxArrivalTime = maxArrivalTime;
+        this.minServiceTime = max(minServiceTime, 1);
+        this.maxServiceTime = maxServiceTime;
         this.selectionPolicy = strategy;
+        this.frame = frame;
 
-        this.scheduler = new Scheduler(numberOfServers, 1);
-        this.generatedTasks = new ArrayList<>();
+        //this.barrier = new CyclicBarrier(numberOfServers + 1); // +1 pt main thread
+        this.scheduler = new Scheduler(numberOfServers);
+        this.scheduler.changeStrategy(strategy);
         generateRandomTasks();
-
-
     }
 
-    //Generating the tasks according to the data input
-    public void generateRandomTasks() {
-       Random random = new Random();
-       generatedTasks.clear();
-
-       for (int i = 1; i <= numberOfClients; i++){
-           int arrivalTime= random.nextInt(maxArrivalTime - minArrivalTime + 1) + minArrivalTime;
-           int serviceTime = random.nextInt(maxServiceTime - minServiceTime + 1) + minServiceTime;
-           Task task = new Task(i, arrivalTime, serviceTime);
-           generatedTasks.add(task);
-       }
-
-       // Sort by arrival time for easier retrivial when adding to queues
+    private void generateRandomTasks() {
+        Random rand = new Random();
+        generatedTasks.clear();
+        for (int i = 1; i <= numberOfClients; i++) {
+            int arrivalTime = rand.nextInt(maxArrivalTime - minArrivalTime + 1) + minArrivalTime;
+            int serviceTime = rand.nextInt(maxServiceTime - minServiceTime + 1) + minServiceTime;
+            generatedTasks.add(new Task(i, arrivalTime, serviceTime));
+        }
         generatedTasks.sort(Comparator.comparingInt(Task::getArrivalTime));
-    }
-
-    public List<Task>  getTasks() {
-        return generatedTasks;
     }
 
     @Override
     public void run() {
         LogWriter.setFrame(frame);
-        LogWriter.start(); // Start logging
+        LogWriter.start();
         SimulationClock.reset();
 
-        while (SimulationClock.getCurrentTime() < timeLimit) {
-            int currentTime = SimulationClock.getCurrentTime();
+        generateRandomTasks();
+        int currentTime = 0;
 
-            //Thread uri
-            //Working with threads
+        while (currentTime < timeLimit) {
+            System.out.println("Simulation tick: " + currentTime);
+
             List<Task> toDispatch = new ArrayList<>();
-            for (Task t : generatedTasks) {
-                if (t.getArrivalTime() == currentTime) {
-                    toDispatch.add(t);
+            for (Task task : generatedTasks) {
+                if (task.getArrivalTime() == currentTime) {
+                    toDispatch.add(task);
                 }
             }
-            for (Task t : toDispatch) {
-                scheduler.dispatchTask(t);
-                generatedTasks.remove(t);
+
+            for (Task task : toDispatch) {
+                scheduler.dispatchTask(task);
+                generatedTasks.remove(task);
             }
 
-            //frame.updateUIState(currentTime, scheduler.getServers()); // optional method to update GUI
+            logSimulationState(currentTime);
+            updatePeakHour(currentTime);
 
-            //Logging
-            synchronized (LogWriter.class){
+            SimulationClock.advance();
+            currentTime++;
 
-                LogWriter.log("Time: " + currentTime);
-
-                //Waiting clients
-                String waiting = "Waiting clients: ";
-                for (Task task : generatedTasks) {
-                    if (task.getArrivalTime() < currentTime)
-                        continue;
-                    waiting += "(" + task.getId() + ", " + task.getArrivalTime() + ", " + task.getServiceTime() + ")";
-                }
-                LogWriter.log(waiting.trim());
-
-                //Queues
-                int queueIndex = 1;
-                for (Server server: scheduler.getServers()) {
-                    String queueState = "Queue" + queueIndex + " :";
-                    Task[] tasks = server.getTasks();
-                    if (server.getCurrentTask() == null && tasks.length == 0) {
-                        queueState += ("closed");
-                    }
-                    else {
-                        if (server.getCurrentTask() != null) {
-                            Task currentTask = server.getCurrentTask();
-                            queueState += " (" + currentTask.getId() + ", " + currentTask.getArrivalTime() + ", " + currentTask.getRemainingServiceTime() +")";
-                        }
-                        for (Task task : tasks) {
-                            queueState += " (" + task.getId() + ", " + task.getArrivalTime() + ", " + task.getRemainingServiceTime() + ")";
-                        }
-
-                    }
-                    LogWriter.log(queueState.trim());
-                    //frame.log(queueState.trim());
-                    queueIndex++;
-                }
-                LogWriter.log("\n"); // new line
-                frame.log("\n");
-            }
-            //Peak hour calculations
-            peakHourCalculation(currentTime);
-
-            SimulationClock.tick();
             try {
-                Thread.sleep(1000);
+                Thread.sleep(1000); // 1 sec
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
+                break;
             }
         }
 
-        avarageWaitingAndServiceTimeCalculation();
-
-        //Optional
+        calculateStats();
+        frame.showStats(averageWaitingTime, peakHour, averageServiceTime);
         scheduler.shutdown();
         LogWriter.close();
     }
 
-    public void avarageWaitingAndServiceTimeCalculation() {
-        //Average Wait
-        int totalWait = 0;
+
+
+    private void calculateStats() {
+        int totalWaitTime = 0;
         int totalServiceTime = 0;
-        int totalFinishedTasks = 0;
+        int totalFinished = 0;
         int totalTasks = 0;
 
         for (Server server : scheduler.getServers()) {
-            for(Task task : server.getTasks()) {
-                if (task.getFinishTime() != 0) // Task-ul e finalizat
-                {
-                    totalWait += task.getFinishTime() - task.getArrivalTime();
-                    totalServiceTime += task.getServiceTime();
-                    totalTasks++;
-                    totalFinishedTasks++;
+            for (Task task : server.getAllTasks()) { // include both queue and finished
+                totalTasks++;
+
+                if (task.getStartServiceTime() > 0) {
+                    totalWaitTime += task.getStartServiceTime() - task.getArrivalTime();
+                } else {
+                    // if not started, assume it's still waiting
+                    totalWaitTime += timeLimit - task.getArrivalTime();
                 }
-                else
-                {
-                    totalWait += timeLimit - task.getArrivalTime();
-                    totalTasks++;
+
+                if (task.getFinishTime() > 0) {
+                    totalServiceTime += task.getServiceTime();
+                    totalFinished++;
                 }
             }
         }
-        averageWaitingTime = (double) totalWait / totalTasks;
-        averageServiceTime = (double) totalServiceTime / totalFinishedTasks;
+
+        if (totalTasks > 0) {
+            averageWaitingTime = (double) totalWaitTime / totalTasks;
+        }
+
+        if (totalFinished > 0) {
+            averageServiceTime = (double) totalServiceTime / totalFinished;
+        }
     }
 
-    public void peakHourCalculation(int currentTime) {
-        int currentConcomitentClients = 0;
-        for (Server server : scheduler.getServers()) {
-            currentConcomitentClients += server.getQueueSize();
-        }
 
-        if (currentConcomitentClients > maxConcomitentClients){
-            maxConcomitentClients = currentConcomitentClients;
+    private void updatePeakHour(int currentTime) {
+        int concurrent = 0;
+        for (Server server : scheduler.getServers()) {
+            concurrent += server.getQueueSize();
+        }
+        if (concurrent > maxConcurrentClients) {
+            maxConcurrentClients = concurrent;
             peakHour = currentTime;
         }
+    }
+
+    private void logSimulationState(int currentTime) {
+        LogWriter.log("Time: " + currentTime);
+
+        // Waiting clients
+        StringBuilder waiting = new StringBuilder("Waiting clients: ");
+        for (Task task : generatedTasks) {
+            if (task.getArrivalTime() >= currentTime) {
+                waiting.append("(")
+                        .append(task.getId()).append(", ")
+                        .append(task.getArrivalTime()).append(", ")
+                        .append(task.getServiceTime()).append(")");
+            }
+        }
+        LogWriter.log(waiting.toString());
+
+        // Queues
+        int queueNumber = 1;
+        for (Server server : scheduler.getServers()) {
+            StringBuilder queueState = new StringBuilder("Queue" + queueNumber + " :");
+            Task current = server.getCurrentTask();
+            if (current == null && server.getTasks().length == 0) {
+                queueState.append("closed");
+            } else {
+                if (current != null) {
+                    queueState.append(" (")
+                            .append(current.getId()).append(", ")
+                            .append(current.getArrivalTime()).append(", ")
+                            .append(current.getRemainingServiceTime()).append(")");
+                }
+                for (Task t : server.getTasks()) {
+                    if (current == null || t.getId() != current.getId()) {
+                        queueState.append(" (")
+                                .append(t.getId()).append(", ")
+                                .append(t.getArrivalTime()).append(", ")
+                                .append(t.getRemainingServiceTime()).append(")");
+                    }
+                }
+            }
+            LogWriter.log(queueState.toString());
+            queueNumber++;
+        }
+
+        LogWriter.log("");
+        frame.log("");
     }
 
     public Scheduler getScheduler() {

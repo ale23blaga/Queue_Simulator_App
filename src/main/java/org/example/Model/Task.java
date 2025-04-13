@@ -7,13 +7,14 @@ public class Task {
     private volatile int  remainingServiceTime;
     private int startServiceTime;
     private int finishTime;
+    private boolean dispatched;
 
     public Task(int id, int arrivalTime, int serviceTime) {
         this.id = id;
         this.arrivalTime = arrivalTime;
         this.serviceTime = serviceTime;
         this.remainingServiceTime = serviceTime;
-
+        this.dispatched = false;
     }
 
     public int getId() {
@@ -47,6 +48,19 @@ public class Task {
     public void decreaseRemainingServiceTime(){
         if (remainingServiceTime > 0){
             remainingServiceTime--;
+            //System.out.println("Task " + id + " decremented to " + remainingServiceTime);
         }
+    }
+
+    public boolean isDispatched() {
+        return dispatched;
+    }
+
+    public void setDispatched(boolean dispatched) {
+        this.dispatched = dispatched;
+    }
+
+    public int getStartServiceTime() {
+        return startServiceTime;
     }
 }

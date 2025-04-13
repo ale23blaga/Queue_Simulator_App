@@ -9,49 +9,42 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Scheduler {
-    private List<Server> servers;
-    private int maxNoServers;
-    private int maxTaskPerServer;
-    private Strategy strategy;
-    private ExecutorService executor;
+    private final List<Server> servers;
+    private  Strategy strategy;
+    private final ExecutorService executor;
 
-    public Scheduler(int maxNoServers, int maxTaskPerServer) {
-        this.maxNoServers = maxNoServers;
-        this.maxTaskPerServer = maxTaskPerServer;
+    public Scheduler(int numberOfServers) {
+        servers = new ArrayList<>();
         strategy = new ShortestQueueStrategy();
-
-        servers = new ArrayList<Server>();
-        executor = Executors.newFixedThreadPool(maxNoServers);
+        executor = Executors.newFixedThreadPool(numberOfServers);
 
 
-        for (int i = 1; i <= maxNoServers; i++) { //for maxNoServers
-            Server server = new Server();
+        for (int i = 1; i <= numberOfServers; i++) {
+            Server server = new Server(i);
             servers.add(server);
-            //Thread pool
             executor.execute(server);
         }
     }
 
-    public void dispatchTask(Task task){
+    public void dispatchTask(Task task) {
         strategy.addTask(servers, task);
-
     }
 
-    public List<Server> getServers(){
+    public List<Server> getServers() {
         return servers;
     }
 
-    public void changeStrategy(SelectionPolicy policy) { //Select the other strategy
-        if (policy == SelectionPolicy.SHORTEST_QUEUE) {
-            strategy = new  ShortestQueueStrategy();
+    public void shutdown() {
+        for (Server server : servers) {
+            server.stop();
         }
-        else
-        if (policy == SelectionPolicy.SHORTEST_TIME){
-            strategy = new  TimeStrategy();
-        }
+        executor.shutdown();
     }
 
-    public void shutdown() {
-        executor.shutdown();
+    public void changeStrategy(SelectionPolicy policy){
+        if (policy == SelectionPolicy.SHORTEST_QUEUE)
+            strategy = new ShortestQueueStrategy();
+        else if (policy == SelectionPolicy.SHORTEST_TIME)
+            strategy = new TimeStrategy();
     }
 }

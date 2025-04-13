@@ -26,6 +26,7 @@ public class SimulationFrame extends JFrame {
 
     private JLabel averageWaitLabel;
     private JLabel peakHourLabel;
+    private JLabel averageServiceLabel;
 
 
     public SimulationFrame() {
@@ -81,8 +82,10 @@ public class SimulationFrame extends JFrame {
         JPanel statsPanel = new JPanel(new GridLayout(1, 2));
         averageWaitLabel = new JLabel("Average Waiting Time: N/A");
         peakHourLabel = new JLabel("Peak Hour: N/A");
+        averageServiceLabel = new JLabel("Average Service Time: N/A");
         statsPanel.add(averageWaitLabel);
         statsPanel.add(peakHourLabel);
+        statsPanel.add(averageServiceLabel);
         statsPanel.setBorder(BorderFactory.createTitledBorder("Statistics"));
         this.add(statsPanel, BorderLayout.SOUTH);
 
@@ -104,10 +107,10 @@ public class SimulationFrame extends JFrame {
         SimulationManager sim =  new SimulationManager(numberOfClients, numberOfServers, maxSimulationTime,
                 minArrivalTime, maxArrivalTime, minServiceTime, maxServiceTime, strategy, this);
 
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(numberOfServers);
-        for (Server server : sim.getScheduler().getServers()){
-            executor.execute(server);
-        }
+        //ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(numberOfServers);
+        //for (Server server : sim.getScheduler().getServers()){
+        //    executor.execute(server);
+        //}
         Thread simulationThread = new Thread(sim);
         simulationThread.start();
     }
@@ -126,13 +129,18 @@ public class SimulationFrame extends JFrame {
         peakHourLabel.setText("Peak Hour: " + time);
     }
 
+    public void setAverageServiceTime(double time) {
+        averageServiceLabel.setText("Average Service Time: " + String.format("%.2f", time));
+    }
+
 
 
     public void showStats(double averageWaitingTime, int peakHour, double averageServiceTime){
         setAverageWaitingTime(averageWaitingTime);
         setPeakHour(peakHour);
+        setAverageServiceTime(averageServiceTime);
         log("Average Waiting Time: " + String.format("%.2f", averageWaitingTime));
         log("Peak Hour: " + peakHour);
-        log("Peak Hour: " + peakHour);
+        log("Average Service Time: " + String.format("%.2f", averageServiceTime));
     }
 }
