@@ -1,6 +1,8 @@
 package org.example.BusinessLogic;
 
+import org.example.GUI.AnimationPanel;
 import org.example.GUI.SimulationFrame;
+import org.example.Model.AnimatedTask;
 import org.example.Model.Server;
 import org.example.Model.SimulationClock;
 import org.example.Model.Task;
@@ -24,7 +26,7 @@ public class SimulationManager implements Runnable {
     private final int minArrivalTime;
     private final SelectionPolicy selectionPolicy;
 
-    // Core components
+    //components
     private final SimulationFrame frame;
     private final Scheduler scheduler;
     private final List<Task> generatedTasks = new ArrayList<>();
@@ -35,7 +37,11 @@ public class SimulationManager implements Runnable {
     private double averageServiceTime = 0.0;
     private int maxConcurrentClients = 0;
 
-    public SimulationManager(int numberOfClients, int numberOfServers, int maxSimulationTime, int minArrivalTime, int maxArrivalTime, int minServiceTime, int maxServiceTime, SelectionPolicy strategy, SimulationFrame frame)
+    //Animation
+    private AnimationPanel animationPanel;
+    private Map<Task, AnimatedTask> animatedTasksMap = new HashMap<>();
+
+    public SimulationManager(int numberOfClients, int numberOfServers, int maxSimulationTime, int minArrivalTime, int maxArrivalTime, int minServiceTime, int maxServiceTime, SelectionPolicy strategy, SimulationFrame frame, AnimationPanel animationPanel)
     {
         this.numberOfClients = numberOfClients;
         this.numberOfServers = numberOfServers;
@@ -46,8 +52,8 @@ public class SimulationManager implements Runnable {
         this.maxServiceTime = maxServiceTime;
         this.selectionPolicy = strategy;
         this.frame = frame;
+        this.animationPanel = animationPanel;
 
-        //this.barrier = new CyclicBarrier(numberOfServers + 1); // +1 pt main thread
         this.scheduler = new Scheduler(numberOfServers);
         this.scheduler.changeStrategy(strategy);
         generateRandomTasks();
@@ -56,6 +62,8 @@ public class SimulationManager implements Runnable {
     private void generateRandomTasks() {
         Random rand = new Random();
         generatedTasks.clear();
+        animatedTasksMap.clear();
+
         int minA = Math.min(minArrivalTime, maxArrivalTime);
         int maxA = Math.max(minArrivalTime, maxArrivalTime);
         int minS = Math.min(minServiceTime, maxServiceTime);
@@ -64,9 +72,18 @@ public class SimulationManager implements Runnable {
         for (int i = 1; i <= numberOfClients; i++) {
             int arrivalTime = rand.nextInt(maxA - minA + 1) + minA;
             int serviceTime = rand.nextInt(maxS - minS + 1) + minS;
-            generatedTasks.add(new Task(i, arrivalTime, serviceTime));
+            Task task = new Task(i, arrivalTime, serviceTime);
+            generatedTasks.add(task);
+
+
+            AnimatedTask animatedTask = new AnimatedTask(task, i);
+            animatedTasksMap.put(task, animatedTask);
+            animationPanel.addAnimatedTask(animatedTask);
+
         }
         generatedTasks.sort(Comparator.comparingInt(Task::getArrivalTime));
+
+
     }
 
     @Override
@@ -87,13 +104,14 @@ public class SimulationManager implements Runnable {
                     toDispatch.add(task);
                 }
             }
-
             for (Task task : toDispatch) {
                 scheduler.dispatchTask(task);
                 generatedTasks.remove(task);
+
             }
 
             logSimulationState(currentTime);
+            animationTaskUpdate();
             updatePeakHour(currentTime);
 
             SimulationClock.advance();
@@ -106,8 +124,8 @@ public class SimulationManager implements Runnable {
                 break;
             }
         }
-
         calculateStats();
+        logStats();
         frame.showStats(averageWaitingTime, peakHour, averageServiceTime);
         scheduler.shutdown();
         LogWriter.close();
@@ -148,7 +166,6 @@ public class SimulationManager implements Runnable {
         }
     }
 
-
     private void updatePeakHour(int currentTime) {
         int concurrent = 0;
         for (Server server : scheduler.getServers()) {
@@ -160,6 +177,14 @@ public class SimulationManager implements Runnable {
         }
     }
 
+    private void logStats(){
+        LogWriter.log("FINAL STATS: ");
+        LogWriter.log("AVerage Waiting Time: " + String.format("%.2f", averageWaitingTime));
+        LogWriter.log("Average Service Time: " + String.format("%.2f", averageServiceTime));
+        LogWriter.log("Peak Hour: " + peakHour);
+
+    }
+
     private void logSimulationState(int currentTime) {
         LogWriter.log("Time: " + currentTime);
 
@@ -167,10 +192,7 @@ public class SimulationManager implements Runnable {
         StringBuilder waiting = new StringBuilder("Waiting clients: ");
         for (Task task : generatedTasks) {
             if (task.getArrivalTime() >= currentTime) {
-                waiting.append("(")
-                        .append(task.getId()).append(", ")
-                        .append(task.getArrivalTime()).append(", ")
-                        .append(task.getServiceTime()).append(")");
+                waiting.append("(").append(task.getId()).append(", ").append(task.getArrivalTime()).append(", ").append(task.getServiceTime()).append(")");
             }
         }
         LogWriter.log(waiting.toString());
@@ -184,17 +206,11 @@ public class SimulationManager implements Runnable {
                 queueState.append("closed");
             } else {
                 if (current != null) {
-                    queueState.append(" (")
-                            .append(current.getId()).append(", ")
-                            .append(current.getArrivalTime()).append(", ")
-                            .append(current.getRemainingServiceTime()).append(")");
+                    queueState.append(" (").append(current.getId()).append(", ").append(current.getArrivalTime()).append(", ").append(current.getRemainingServiceTime()).append(")");
                 }
                 for (Task t : server.getTasks()) {
                     if (current == null || t.getId() != current.getId()) {
-                        queueState.append(" (")
-                                .append(t.getId()).append(", ")
-                                .append(t.getArrivalTime()).append(", ")
-                                .append(t.getRemainingServiceTime()).append(")");
+                        queueState.append(" (").append(t.getId()).append(", ").append(t.getArrivalTime()).append(", ").append(t.getRemainingServiceTime()).append(")");
                     }
                 }
             }
@@ -208,5 +224,36 @@ public class SimulationManager implements Runnable {
 
     public Scheduler getScheduler() {
         return scheduler;
+    }
+
+    public void animationTaskUpdate()
+    {
+        for (Server server : scheduler.getServers()) {
+            int queuePosition = 0;
+
+            //current task
+            Task current = server.getCurrentTask();
+            if (current != null && current.getFinishTime() == -1) {
+                AnimatedTask at = animatedTasksMap.get(current);
+                if (at != null) {
+                    at.setQueuePos(server.getId(), queuePosition);
+                    at.setInQueue(true);
+                }
+                queuePosition++;
+            }
+
+            //tasks in queue
+            for (Task t : server.getTasks()) {
+                if (t != current && t.getFinishTime() == -1) {
+                    AnimatedTask at = animatedTasksMap.get(t);
+                    if (at != null) {
+                        at.setQueuePos(server.getId(), queuePosition);
+                        at.setInQueue(true);
+                    }
+                    queuePosition++;
+                }
+            }
+
+        }
     }
 }

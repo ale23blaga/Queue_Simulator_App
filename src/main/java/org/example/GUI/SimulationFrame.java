@@ -28,6 +28,7 @@ public class SimulationFrame extends JFrame {
     private JLabel peakHourLabel;
     private JLabel averageServiceLabel;
 
+    //Animatie
 
     public SimulationFrame() {
         this.setTitle("Queue Simulation");
@@ -78,6 +79,7 @@ public class SimulationFrame extends JFrame {
         scrollPane.setBorder(BorderFactory.createTitledBorder("Simulation Log"));
         this.add(scrollPane, BorderLayout.CENTER);
 
+
         // Bottom stats
         JPanel statsPanel = new JPanel(new GridLayout(1, 2));
         averageWaitLabel = new JLabel("Average Waiting Time: N/A");
@@ -104,13 +106,12 @@ public class SimulationFrame extends JFrame {
 
         SelectionPolicy strategy = SelectionPolicy.valueOf(strategybox.getSelectedItem().toString());
 
-        SimulationManager sim =  new SimulationManager(numberOfClients, numberOfServers, maxSimulationTime,
-                minArrivalTime, maxArrivalTime, minServiceTime, maxServiceTime, strategy, this);
+        //Animation frame
+        AnimationFrame animationFrame = new AnimationFrame(numberOfServers);
 
-        //ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(numberOfServers);
-        //for (Server server : sim.getScheduler().getServers()){
-        //    executor.execute(server);
-        //}
+        SimulationManager sim =  new SimulationManager(numberOfClients, numberOfServers, maxSimulationTime,
+                minArrivalTime, maxArrivalTime, minServiceTime, maxServiceTime, strategy, this, animationFrame.getAnimationPanel());
+
         Thread simulationThread = new Thread(sim);
         simulationThread.start();
     }

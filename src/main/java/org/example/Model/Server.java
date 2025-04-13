@@ -13,7 +13,7 @@ public class Server implements Runnable {
     private Task currentTask = null;
     private boolean running = true;
     private int currentTick = 0;
-    private List<Task> allTasks = new ArrayList<>();
+    private List<Task> allTasks = new ArrayList<>(); //Finished, current, and waiting tasks
 
     public Server(int id) {
         this.id = id;
@@ -22,6 +22,7 @@ public class Server implements Runnable {
     public void addTask(Task task) {
         tasks.add(task);
         allTasks.add(task); // for average wait and service time calculations
+        task.setServerId(id);
         waitingPeriod.addAndGet(task.getServiceTime());
     }
 

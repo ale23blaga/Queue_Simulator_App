@@ -1,13 +1,16 @@
 package org.example.Model;
 
+import java.util.Objects;
+
 public class Task {
     private int id;
     private int arrivalTime;
     private int serviceTime;
     private volatile int  remainingServiceTime;
-    private int startServiceTime;
-    private int finishTime;
+    private int startServiceTime = -1;
+    private int finishTime = -1;
     private boolean dispatched;
+    private int serverId = -1;
 
     public Task(int id, int arrivalTime, int serviceTime) {
         this.id = id;
@@ -19,6 +22,14 @@ public class Task {
 
     public int getId() {
         return id;
+    }
+
+    public void setServerId(int serverId) {
+        this.serverId = serverId;
+    }
+
+    public int getServerId(){
+        return serverId;
     }
 
     public int getArrivalTime() {
