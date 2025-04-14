@@ -1,4 +1,4 @@
-package org.example.BusinessLogic;
+package org.example.DataAccess;
 
 import org.example.GUI.SimulationFrame;
 

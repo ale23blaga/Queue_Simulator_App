@@ -4,9 +4,8 @@ public class AnimatedTask {
     private final Task task;
     private int x, y;
     private int queueX = 0, queueY = 0;
-    private boolean active = false;
     private boolean inQueue = false;
-    private final int SPEED = 30;
+    private final int speed = 30;
 
     public AnimatedTask(Task task, int index) {
         this.task = task;
@@ -20,13 +19,13 @@ public class AnimatedTask {
         int dx = queueX - x;
         int dy = queueY - y;
 
-        if (Math.abs(dx) > SPEED)
-            x += SPEED * Integer.signum(dx);
+        if (Math.abs(dx) > speed)
+            x += speed * Integer.signum(dx);
         else
             x = queueX;
 
-        if (Math.abs(dy) > SPEED)
-            y += SPEED * Integer.signum(dy);
+        if (Math.abs(dy) > speed)
+            y += speed * Integer.signum(dy);
         else
             y = queueY;
     }

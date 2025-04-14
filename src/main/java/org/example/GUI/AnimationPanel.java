@@ -37,11 +37,6 @@ public class AnimationPanel extends JPanel {
         animatedTasks.add(animatedTask);
     }
 
-    public void assignTaskToServer(AnimatedTask animatedTask){
-        animatedTask.setInQueue(true);
-        recalculateQueuePosition();
-    }
-
     public void recalculateQueuePosition() {
         List<AnimatedTask>[] serverQueues = new ArrayList[serverCount];
         for (int i = 0; i < serverCount; i++) {
@@ -68,17 +63,6 @@ public class AnimationPanel extends JPanel {
                 task.setQueuePos(xQueue, yQueue);
             }
         }
-    }
-
-    public void markAsFinished(Task task) {
-        for (AnimatedTask animatedTask : animatedTasks) {
-            if (animatedTask.getTask().equals(task)) {
-                animatedTask.setInQueue(false);
-                animatedTask.setQueuePos(1100, animatedTask.getY());
-                break;
-            }
-        }
-        recalculateQueuePosition();
     }
 
     @Override

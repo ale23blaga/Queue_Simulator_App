@@ -1,5 +1,6 @@
 package org.example.BusinessLogic;
 
+import org.example.DataAccess.LogWriter;
 import org.example.GUI.AnimationPanel;
 import org.example.GUI.SimulationFrame;
 import org.example.Model.AnimatedTask;
@@ -8,8 +9,6 @@ import org.example.Model.SimulationClock;
 import org.example.Model.Task;
 
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
 
 import static java.lang.Math.max;
 

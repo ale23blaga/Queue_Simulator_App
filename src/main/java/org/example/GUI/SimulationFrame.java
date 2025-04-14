@@ -134,7 +134,6 @@ public class SimulationFrame extends JFrame {
         averageServiceLabel.setText("Average Service Time: " + String.format("%.2f", time));
     }
 
-    
     public void showStats(double averageWaitingTime, int peakHour, double averageServiceTime){
         setAverageWaitingTime(averageWaitingTime);
         setPeakHour(peakHour);
