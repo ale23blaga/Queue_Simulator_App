@@ -7,10 +7,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Server implements Runnable {
-    private final BlockingQueue<Task> tasks = new LinkedBlockingQueue<>();
-    private final AtomicInteger waitingPeriod = new AtomicInteger(0);
+    private final BlockingQueue<Task> tasks = new LinkedBlockingQueue<>(); //Tasks inside the waiting queue
+    private final AtomicInteger waitingPeriod = new AtomicInteger(0); // waiting time for server
     private final int id;
-    private Task currentTask = null;
+    private Task currentTask = null; //The current task that is being solved
     private boolean running = true;
     private int currentTick = 0;
     private List<Task> allTasks = new ArrayList<>(); //Finished, current, and waiting tasks
@@ -72,7 +72,7 @@ public class Server implements Runnable {
                     if (currentTask != null) {
                         currentTask.decreaseRemainingServiceTime();
                         System.out.println("Task " + currentTask.getId() + " decremented to " + currentTask.getRemainingServiceTime());
-                        waitingPeriod.decrementAndGet(); // -1 pe tick
+                        waitingPeriod.decrementAndGet(); // -1 pe tic
 
                         if (currentTask.getRemainingServiceTime() <= 0) {
                             currentTask.setFinishTime(SimulationClock.getCurrentTime());

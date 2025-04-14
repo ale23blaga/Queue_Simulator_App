@@ -37,7 +37,7 @@ public class SimulationFrame extends JFrame {
         this.setLayout(new BorderLayout());
 
         // Top inputs
-        JPanel inputPanel = new JPanel(new GridLayout(3, 4, 10, 10));
+        JPanel inputPanel = new JPanel(new GridLayout(5, 4, 10, 10));
         inputPanel.setBorder(BorderFactory.createTitledBorder("Simulation Settings"));
 
         numberOfClientsField = new JTextField("100");
@@ -57,6 +57,8 @@ public class SimulationFrame extends JFrame {
         inputPanel.add(numberOfServersField);
         inputPanel.add(new JLabel("Max Simulation Time"));
         inputPanel.add(maxSimulationTimeField);
+        inputPanel.add(new JLabel("Strategy"));
+        inputPanel.add(strategybox);
         inputPanel.add(new JLabel("Min Arrival Time"));
         inputPanel.add(minArrivalTimeField);
         inputPanel.add(new JLabel("Max Arrival Time"));
@@ -65,8 +67,6 @@ public class SimulationFrame extends JFrame {
         inputPanel.add(minServiceTimeField);
         inputPanel.add(new JLabel("Max Service Time"));
         inputPanel.add(maxServiceTimeField);
-        inputPanel.add(new JLabel("Strategy"));
-        inputPanel.add(strategybox);
         inputPanel.add(startButton);
 
         startButton.addActionListener(e -> startSimulation());
@@ -134,14 +134,13 @@ public class SimulationFrame extends JFrame {
         averageServiceLabel.setText("Average Service Time: " + String.format("%.2f", time));
     }
 
-
-
+    
     public void showStats(double averageWaitingTime, int peakHour, double averageServiceTime){
         setAverageWaitingTime(averageWaitingTime);
         setPeakHour(peakHour);
         setAverageServiceTime(averageServiceTime);
-        log("Average Waiting Time: " + String.format("%.2f", averageWaitingTime));
-        log("Peak Hour: " + peakHour);
-        log("Average Service Time: " + String.format("%.2f", averageServiceTime));
+        //log("Average Waiting Time: " + String.format("%.2f", averageWaitingTime));
+        //log("Peak Hour: " + peakHour);
+        //log("Average Service Time: " + String.format("%.2f", averageServiceTime));
     }
 }

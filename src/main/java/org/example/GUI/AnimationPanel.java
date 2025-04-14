@@ -25,7 +25,7 @@ public class AnimationPanel extends JPanel {
                     task.moveTowardQueue();
                 }
                 else {
-
+                    task.moveTowardQueue();
                 }
             }
             repaint();

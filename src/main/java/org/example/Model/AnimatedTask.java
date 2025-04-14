@@ -11,7 +11,9 @@ public class AnimatedTask {
     public AnimatedTask(Task task, int index) {
         this.task = task;
         this.x = 1100;
-        this.y = 10 + index * 20;
+        this.queueX = this.x;
+        this.y = 10 + index * 10;
+        this.queueY = this.y;
     }
 
     public void moveTowardQueue() {

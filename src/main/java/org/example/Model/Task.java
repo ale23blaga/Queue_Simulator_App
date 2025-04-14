@@ -10,7 +10,7 @@ public class Task {
     private int startServiceTime = -1;
     private int finishTime = -1;
     private boolean dispatched;
-    private int serverId = -1;
+    private int serverId = -1; // Id for the server in which queue it is/was
 
     public Task(int id, int arrivalTime, int serviceTime) {
         this.id = id;

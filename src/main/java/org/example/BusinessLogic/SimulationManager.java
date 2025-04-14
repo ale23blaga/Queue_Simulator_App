@@ -116,7 +116,6 @@ public class SimulationManager implements Runnable {
 
             SimulationClock.advance();
             currentTime++;
-
             try {
                 Thread.sleep(1000); // 1 sec
             } catch (InterruptedException e) {
@@ -124,6 +123,7 @@ public class SimulationManager implements Runnable {
                 break;
             }
         }
+
         calculateStats();
         logStats();
         frame.showStats(averageWaitingTime, peakHour, averageServiceTime);
@@ -140,17 +140,17 @@ public class SimulationManager implements Runnable {
         int totalTasks = 0;
 
         for (Server server : scheduler.getServers()) {
-            for (Task task : server.getAllTasks()) { // include both queue and finished
+            for (Task task : server.getAllTasks()) { // include boht queue and finished
                 totalTasks++;
 
                 if (task.getStartServiceTime() > 0) {
-                    totalWaitTime += task.getStartServiceTime() - task.getArrivalTime();
+                    totalWaitTime += task.getStartServiceTime() - task.getArrivalTime() - 1;
                 } else {
-                    // if not started, assume it's still waiting
+                    // if not started assume it's still waiting
                     totalWaitTime += timeLimit - task.getArrivalTime();
                 }
 
-                if (task.getFinishTime() > 0) {
+                if (task.getFinishTime() > 0) { //average service time for finished tasks
                     totalServiceTime += task.getServiceTime();
                     totalFinished++;
                 }
@@ -189,32 +189,32 @@ public class SimulationManager implements Runnable {
         LogWriter.log("Time: " + currentTime);
 
         // Waiting clients
-        StringBuilder waiting = new StringBuilder("Waiting clients: ");
+        String waiting = "Waiting clients: ";
         for (Task task : generatedTasks) {
             if (task.getArrivalTime() >= currentTime) {
-                waiting.append("(").append(task.getId()).append(", ").append(task.getArrivalTime()).append(", ").append(task.getServiceTime()).append(")");
+                waiting +=  " (" + task.getId() + ", " + task.getArrivalTime() + ", " + task.getServiceTime() + ")";
             }
         }
-        LogWriter.log(waiting.toString());
+        LogWriter.log(waiting);
 
         // Queues
         int queueNumber = 1;
         for (Server server : scheduler.getServers()) {
-            StringBuilder queueState = new StringBuilder("Queue" + queueNumber + " :");
+            String queueState = "Queue" + queueNumber + " :";
             Task current = server.getCurrentTask();
             if (current == null && server.getTasks().length == 0) {
-                queueState.append("closed");
+                queueState += "closed";
             } else {
                 if (current != null) {
-                    queueState.append(" (").append(current.getId()).append(", ").append(current.getArrivalTime()).append(", ").append(current.getRemainingServiceTime()).append(")");
+                    queueState += " (" + current.getId() + ", " + current.getArrivalTime() + ", " + current.getRemainingServiceTime() + ")";
                 }
                 for (Task t : server.getTasks()) {
                     if (current == null || t.getId() != current.getId()) {
-                        queueState.append(" (").append(t.getId()).append(", ").append(t.getArrivalTime()).append(", ").append(t.getRemainingServiceTime()).append(")");
+                        queueState += " (" + t.getId() + ", " + t.getArrivalTime() + ", " + t.getRemainingServiceTime() + ")";
                     }
                 }
             }
-            LogWriter.log(queueState.toString());
+            LogWriter.log(queueState);
             queueNumber++;
         }
 

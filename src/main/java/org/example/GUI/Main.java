@@ -1,6 +1,10 @@
 package org.example.GUI;
+
+import org.example.BusinessLogic.LogWriter;
+
 public class Main {
     public static void main(String[] args) {
-        new SimulationFrame();
+        SimulationFrame frame = new SimulationFrame();
+        LogWriter.setFrame(frame);
     }
 }
