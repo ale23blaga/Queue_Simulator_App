@@ -23,7 +23,7 @@ The **Queue Simulation App** is a Java-based application that allows users to si
 6. Close the application
 7. Start from 1. if you want to repeat
 
-##Development Notes
+## Development Notes
 UML Diagrams included:
 - Package Diagram
 - Class Diagram
@@ -31,4 +31,5 @@ UML Diagrams included:
 
 ## Contributors
 - Blaga Alexandra
+
 
