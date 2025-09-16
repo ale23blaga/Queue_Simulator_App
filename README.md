@@ -1,4 +1,4 @@
-# Queue Simulation App
+# Queue Simulator App
 
 ## Overview
 The **Queue Simulation App** is a Java-based application that allows users to simulate a real-life queue sistem and view the eveolution of it's state, as wells as statistics.
@@ -31,3 +31,4 @@ UML Diagrams included:
 
 ## Contributors
 - Blaga Alexandra
+
